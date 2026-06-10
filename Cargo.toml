@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Pre-commit hook that reverts Delft-FEWS XML configuration values to their required defaults"
 license = "MIT"
-repository = "https://github.com/hkv/fews-precommit"
+repository = "https://github.com/HKV-products-services/fews-precommit"
 
 [dependencies]
 anyhow = "1"

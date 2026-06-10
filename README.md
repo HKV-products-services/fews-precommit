@@ -27,7 +27,7 @@ installed — no Rust knowledge required. Add this to the
 
 ```yaml
 repos:
-  - repo: https://github.com/hkv/fews-precommit
+  - repo: https://github.com/HKV-products-services/fews-precommit
     rev: v0.1.0
     hooks:
       - id: fews-xml-defaults
@@ -151,7 +151,7 @@ pre-commit installs it automatically, just like the Rust hook:
 
 ```yaml
 repos:
-  - repo: https://github.com/hkv/fews-precommit
+  - repo: https://github.com/HKV-products-services/fews-precommit
     rev: v0.1.0
     hooks:
       - id: fews-xml-defaults

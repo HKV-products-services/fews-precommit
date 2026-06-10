@@ -123,5 +123,5 @@ Initial implementation.
 - **Exact value comparison by default**: reverting `true` → `True` is
   intentional (the repository convention wins); `ignore_case` is opt-in.
 
-[Unreleased]: https://github.com/hkv/fews-precommit/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/hkv/fews-precommit/releases/tag/v0.1.0
+[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/HKV-products-services/fews-precommit/releases/tag/v0.1.0
