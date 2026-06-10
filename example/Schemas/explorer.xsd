@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal demonstration schema covering the example Explorer.xml.
+     In a real FEWS configuration repository, place the genuine schemas from
+     your FEWS distribution (or https://fews.wldelft.nl/schemas/) in this
+     directory; they are matched by file name from each XML file's
+     xsi:schemaLocation. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:fews="http://www.wldelft.nl/fews"
+           targetNamespace="http://www.wldelft.nl/fews"
+           elementFormDefault="qualified">
+  <xs:element name="explorer">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="systemInformation">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="systemCaption" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="adjustSystemTimeAutomatically" type="fews:capitalizedBoolean"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="capitalizedBoolean">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="True"/>
+      <xs:enumeration value="False"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

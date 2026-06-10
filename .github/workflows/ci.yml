@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs of the same branch/PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+
+  lint:
+    name: Format and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+
+  # Exercises the Python-based XSD validation hook against the shipped
+  # example: the valid file must pass, a structurally broken one must fail.
+  xsd-validate:
+    name: XSD validation hook
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install .
+      - name: Accept the valid example
+        run: cd example && fews-xsd-validate --schema-dir Schemas SystemConfigFiles/Explorer.xml
+      - name: Reject a structurally invalid file
+        run: |
+          cd example
+          sed 's/<systemCaption>/<bogusElement\/><systemCaption>/' \
+            SystemConfigFiles/Explorer.xml > /tmp/Bad.xml
+          if fews-xsd-validate --schema-dir Schemas /tmp/Bad.xml; then
+            echo "validator should have rejected the file" >&2
+            exit 1
+          fi
+      - name: Missing schemas warn by default but fail when asked
+        run: |
+          cd example
+          printf '<?xml version="1.0"?><x xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://example.org/unknown.xsd">1</x>' > /tmp/Unknown.xml
+          fews-xsd-validate --schema-dir Schemas /tmp/Unknown.xml
+          if fews-xsd-validate --schema-dir Schemas --missing-schema fail /tmp/Unknown.xml; then
+            echo "validator should have failed on the missing schema" >&2
+            exit 1
+          fi
+
+  # Runs the hook through pre-commit itself, the way end users consume it:
+  # a FEWS config repo with a debug value staged must fail the hook and end
+  # up with the value reverted to its default.
+  pre-commit-integration:
+    name: pre-commit integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pre-commit
+      - name: Run hook via pre-commit try-repo
+        run: |
+          mkdir /tmp/fews-config && cd /tmp/fews-config
+          git init -q
+          cp -r "$GITHUB_WORKSPACE/example/SystemConfigFiles" .
+          cp "$GITHUB_WORKSPACE/example/.fews-precommit.toml" .
+          git add -A
+
+          # The example ships with the debug value, so the hook must fail...
+          if pre-commit try-repo "$GITHUB_WORKSPACE" fews-xml-defaults \
+              --files SystemConfigFiles/Explorer.xml; then
+            echo "hook should have failed on the debug value" >&2
+            exit 1
+          fi
+
+          # ...and revert the file to the required default.
+          grep -q '<adjustSystemTimeAutomatically>True</adjustSystemTimeAutomatically>' \
+            SystemConfigFiles/Explorer.xml
+
+          # A second run on the fixed file must pass.
+          git add -A
+          pre-commit try-repo "$GITHUB_WORKSPACE" fews-xml-defaults \
+            --files SystemConfigFiles/Explorer.xml

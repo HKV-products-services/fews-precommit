@@ -1,0 +1,20 @@
+# Example .pre-commit-config.yaml for a Delft-FEWS configuration repository.
+repos:
+  - repo: https://github.com/hkv/fews-precommit
+    rev: v0.1.0
+    hooks:
+      - id: fews-xml-defaults
+        # Uncomment if you do not have a Rust toolchain installed;
+        # pre-commit then downloads one automatically via rustup:
+        # language_version: "1.83"
+        #
+        # Use a rules file from a non-default location:
+        # args: [--config, tools/fews-rules.toml]
+
+      # Validate staged XML files against the FEWS XSD schemas. Put copies
+      # of the schemas from your FEWS distribution in Schemas/ (they are
+      # matched by file name from each file's xsi:schemaLocation).
+      - id: fews-xsd-validate
+        args: [--schema-dir, Schemas]
+        # Stricter: fail when a declared schema is missing locally
+        # args: [--schema-dir, Schemas, --missing-schema, fail]

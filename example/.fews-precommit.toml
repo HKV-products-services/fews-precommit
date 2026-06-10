@@ -1,0 +1,62 @@
+# Rules for fews-precommit. Place this file in the root of your FEWS
+# configuration repository (next to .pre-commit-config.yaml).
+#
+# Each [[rules]] block enforces one check:
+#   path        glob matched against the file path (relative patterns also
+#               match deeper in the tree, so "SystemConfigFiles/Explorer.xml"
+#               matches "Config/SystemConfigFiles/Explorer.xml" too)
+#   tag         name of the XML element to enforce; may be a path like
+#               "general/timeOut" to disambiguate elements that occur in
+#               several places
+#   expected    the value the element must always have
+#   forbidden   optional list: only revert when the current value is one of
+#               these; when omitted, any other value is reverted
+#   attribute   optional: enforce this attribute of the element instead of
+#               its text content
+#   ignore_case optional: compare values case-insensitively (default false)
+#   required    optional: the element must be present in the file; missing
+#               elements are reported but cannot be fixed automatically
+#   remove      optional: the element must not be present at all and is
+#               deleted on fix (cannot be combined with the keys above)
+
+# The classic one: never commit Explorer.xml with automatic system time
+# adjustment switched off.
+[[rules]]
+path = "SystemConfigFiles/Explorer.xml"
+tag = "adjustSystemTimeAutomatically"
+expected = "True"
+
+# Only revert known debug log levels; any other custom value is left alone.
+#[[rules]]
+#path = "SystemConfigFiles/Log4jConfig.xml"
+#tag = "logLevel"
+#expected = "INFO"
+#forbidden = ["DEBUG", "TRACE"]
+
+# Enforce an attribute value instead of element text.
+#[[rules]]
+#path = "RegionConfigFiles/*.xml"
+#tag = "export"
+#attribute = "debug"
+#expected = "false"
+
+# Disambiguate a tag that occurs in several places with a tag path, and
+# accept "true"/"True"/"TRUE" alike.
+#[[rules]]
+#path = "WorkflowFiles/*.xml"
+#tag = "general/runInLoop"
+#expected = "false"
+#ignore_case = true
+
+# A debugging-only element that must never be committed at all.
+#[[rules]]
+#path = "**/*.xml"
+#tag = "debugSettings"
+#remove = true
+
+# An element that must always be present (reported, not auto-fixed).
+#[[rules]]
+#path = "SystemConfigFiles/Explorer.xml"
+#tag = "systemCaption"
+#expected = "Operational System"
+#required = true

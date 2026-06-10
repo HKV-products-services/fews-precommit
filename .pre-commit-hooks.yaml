@@ -1,0 +1,42 @@
+# Hooks exposed by this repository for use with https://pre-commit.com
+- id: fews-xml-defaults
+  name: Delft-FEWS XML defaults (fix)
+  description: >-
+    Reverts Delft-FEWS XML configuration values that were changed for
+    debugging or testing back to their required defaults.
+  entry: fews-precommit
+  language: rust
+  types: [xml]
+
+- id: fews-xml-defaults-check
+  name: Delft-FEWS XML defaults (check only)
+  description: >-
+    Fails when Delft-FEWS XML configuration values deviate from their
+    required defaults, without modifying any files.
+  entry: fews-precommit
+  args: [--check]
+  language: rust
+  types: [xml]
+
+- id: fews-xml-wellformed
+  name: Delft-FEWS XML well-formedness
+  description: >-
+    Fails when a staged XML file is not well-formed (syntax errors,
+    truncated files), in addition to the configured rule checks.
+    Never modifies files.
+  entry: fews-precommit
+  args: [--check, --well-formed]
+  language: rust
+  types: [xml]
+
+- id: fews-xsd-validate
+  name: Delft-FEWS XSD validation
+  description: >-
+    Validates staged XML files against their XSD schemas. The schema is
+    taken from each file's xsi:schemaLocation and resolved by file name in
+    a local schema directory (default "Schemas/", override with
+    "args: [--schema-dir, path]"). Files without a schema declaration are
+    skipped.
+  entry: fews-xsd-validate
+  language: python
+  types: [xml]

@@ -1,0 +1,17 @@
+[package]
+name = "fews-precommit"
+version = "0.1.0"
+edition = "2021"
+description = "Pre-commit hook that reverts Delft-FEWS XML configuration values to their required defaults"
+license = "MIT"
+repository = "https://github.com/hkv/fews-precommit"
+
+[dependencies]
+anyhow = "1"
+globset = "0.4"
+quick-xml = "0.37"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+[profile.release]
+strip = true
