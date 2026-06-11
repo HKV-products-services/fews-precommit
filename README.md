@@ -1,5 +1,8 @@
 # fews-precommit
 
+> ![Warning]
+> This repository was completely created with AI.
+
 A [pre-commit](https://pre-commit.com) hook for Delft-FEWS configuration
 repositories. It scans staged XML files and reverts values that were changed
 for debugging or testing back to their required defaults, so they never end
