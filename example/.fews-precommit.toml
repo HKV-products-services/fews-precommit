@@ -24,7 +24,7 @@
 [[rules]]
 path = "SystemConfigFiles/Explorer.xml"
 tag = "adjustSystemTimeAutomatically"
-expected = "True"
+expected = "true"
 
 # Only revert known debug log levels; any other custom value is left alone.
 #[[rules]]

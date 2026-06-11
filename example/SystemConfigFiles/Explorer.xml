@@ -4,6 +4,6 @@
 	<systemInformation>
 		<systemCaption>FEWS Example</systemCaption>
 	</systemInformation>
-	<!-- set to False only for local debugging, never commit that -->
-	<adjustSystemTimeAutomatically>False</adjustSystemTimeAutomatically>
+	<!-- set to false only for local debugging, never commit that -->
+	<adjustSystemTimeAutomatically>false</adjustSystemTimeAutomatically>
 </explorer>

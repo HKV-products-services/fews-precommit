@@ -11,16 +11,17 @@ up in a commit.
 The classic example: while debugging it is convenient to set
 
 ```xml
-<adjustSystemTimeAutomatically>False</adjustSystemTimeAutomatically>
+<adjustSystemTimeAutomatically>false</adjustSystemTimeAutomatically>
 ```
 
 in `SystemConfigFiles/Explorer.xml`, but in the repository this must always be
 
 ```xml
-<adjustSystemTimeAutomatically>True</adjustSystemTimeAutomatically>
+<adjustSystemTimeAutomatically>true</adjustSystemTimeAutomatically>
 ```
 
-This hook reverts it automatically on commit.
+This hook reverts it automatically on commit. (FEWS booleans are XSD
+`xs:boolean`, so the enforced values are lowercase `true`/`false`.)
 
 ## Usage
 
@@ -31,7 +32,7 @@ installed — no Rust knowledge required. Add this to the
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: fews-xml-defaults
 ```
@@ -59,7 +60,7 @@ and re-stage:
 Delft-FEWS XML defaults (fix)............................................Failed
 - files were modified by this hook
 
-SystemConfigFiles/Explorer.xml: <adjustSystemTimeAutomatically> is 'False', must be 'True' -- reverted
+SystemConfigFiles/Explorer.xml: <adjustSystemTimeAutomatically> is 'false', must be 'true' -- reverted
 ```
 
 ### Available hooks
@@ -82,7 +83,7 @@ annotated version):
 [[rules]]
 path = "SystemConfigFiles/Explorer.xml"
 tag = "adjustSystemTimeAutomatically"
-expected = "True"
+expected = "true"
 
 # only revert known debug values, leave anything else alone
 [[rules]]
@@ -132,7 +133,7 @@ required = true
 
 Without a `.fews-precommit.toml` the hook falls back to one built-in rule:
 `adjustSystemTimeAutomatically` in `SystemConfigFiles/Explorer.xml` must be
-`True`.
+`true`.
 
 To keep the rules file somewhere else, pass it explicitly:
 
@@ -155,7 +156,7 @@ pre-commit installs it automatically, just like the Rust hook:
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: fews-xml-defaults
       - id: fews-xsd-validate
@@ -194,6 +195,23 @@ fews-precommit --config rules.toml file1.xml file2.xml
 
 Exit codes: `0` everything compliant, `1` violations found (and fixed unless
 `--check`), `2` configuration, syntax or I/O error.
+
+## Troubleshooting
+
+**"linker `link.exe` not found" during `pre-commit run` (Windows).**
+pre-commit compiles the hook with your Rust toolchain, and rustup defaults
+to the MSVC toolchain, which needs Visual Studio Build Tools. Either install
+those, or switch to the self-contained GNU toolchain:
+
+```sh
+rustup toolchain install stable-x86_64-pc-windows-gnu
+rustup default stable-x86_64-pc-windows-gnu
+```
+
+then run pre-commit again (the failed install is retried automatically).
+
+**The first commit takes minutes.** That is the one-time compilation of the
+hook; pre-commit caches the result and later runs take milliseconds.
 
 ## Design choices
 

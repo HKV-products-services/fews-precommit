@@ -18,14 +18,14 @@
             </xs:sequence>
           </xs:complexType>
         </xs:element>
-        <xs:element name="adjustSystemTimeAutomatically" type="fews:capitalizedBoolean"/>
+        <xs:element name="adjustSystemTimeAutomatically" type="fews:fewsBoolean"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  <xs:simpleType name="capitalizedBoolean">
+  <xs:simpleType name="fewsBoolean">
     <xs:restriction base="xs:string">
-      <xs:enumeration value="True"/>
-      <xs:enumeration value="False"/>
+      <xs:enumeration value="true"/>
+      <xs:enumeration value="false"/>
     </xs:restriction>
   </xs:simpleType>
 </xs:schema>

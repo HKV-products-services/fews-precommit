@@ -101,7 +101,7 @@ jobs:
           fi
 
           # ...and revert the file to the required default.
-          grep -q '<adjustSystemTimeAutomatically>True</adjustSystemTimeAutomatically>' \
+          grep -q '<adjustSystemTimeAutomatically>true</adjustSystemTimeAutomatically>' \
             SystemConfigFiles/Explorer.xml
 
           # A second run on the fixed file must pass.

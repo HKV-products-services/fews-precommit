@@ -255,11 +255,12 @@ fn load_rules(config_path: Option<&std::path::Path>) -> Result<Vec<Rule>> {
 }
 
 /// Rules that apply when no .fews-precommit.toml is present.
+/// Note: FEWS booleans are XSD xs:boolean, so lowercase "true"/"false".
 fn default_rules() -> Vec<Rule> {
     vec![Rule {
         path: "SystemConfigFiles/Explorer.xml".into(),
         tag: "adjustSystemTimeAutomatically".into(),
-        expected: Some("True".into()),
+        expected: Some("true".into()),
         ..Rule::default()
     }]
 }
@@ -911,9 +912,9 @@ mod tests {
     fn default_rules_cover_explorer_example() {
         let compiled = compile_rules(default_rules()).unwrap();
         assert!(compiled[0].matches("SystemConfigFiles/Explorer.xml"));
-        let xml = "<explorer><adjustSystemTimeAutomatically>False</adjustSystemTimeAutomatically></explorer>";
+        let xml = "<explorer><adjustSystemTimeAutomatically>false</adjustSystemTimeAutomatically></explorer>";
         let (fixed, changes) = apply_rules(xml, &[&compiled[0].rule]).unwrap();
         assert_eq!(changes.len(), 1);
-        assert!(fixed.contains(">True<"));
+        assert!(fixed.contains(">true<"));
     }
 }

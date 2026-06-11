@@ -10,8 +10,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 const EXPLORER_DEBUG: &str = "\
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\
 <explorer xmlns=\"http://www.wldelft.nl/fews\">\r\n\
-\t<!-- set to False only for local debugging -->\r\n\
-\t<adjustSystemTimeAutomatically>False</adjustSystemTimeAutomatically>\r\n\
+\t<!-- set to false only for local debugging -->\r\n\
+\t<adjustSystemTimeAutomatically>false</adjustSystemTimeAutomatically>\r\n\
 </explorer>\r\n";
 
 /// Temporary directory that mimics a FEWS configuration repository root.
@@ -69,9 +69,9 @@ fn fix_mode_reverts_and_fails_then_passes_on_second_run() {
     // First run: the debug value is reverted and the hook fails the commit.
     let output = repo.run(&["SystemConfigFiles/Explorer.xml"]);
     assert_eq!(output.status.code(), Some(1));
-    assert!(stdout(&output).contains("is 'False', must be 'True'"));
+    assert!(stdout(&output).contains("is 'false', must be 'true'"));
     let fixed = repo.read("SystemConfigFiles/Explorer.xml");
-    assert_eq!(fixed, EXPLORER_DEBUG.replace(">False<", ">True<"));
+    assert_eq!(fixed, EXPLORER_DEBUG.replace(">false<", ">true<"));
 
     // Second run: nothing left to fix, the commit may proceed.
     let output = repo.run(&["SystemConfigFiles/Explorer.xml"]);
@@ -87,9 +87,9 @@ fn fix_preserves_declaration_comments_and_crlf_exactly() {
 
     // The only difference must be the enforced value itself.
     let fixed = repo.read("SystemConfigFiles/Explorer.xml");
-    assert_eq!(fixed, EXPLORER_DEBUG.replace(">False<", ">True<"));
+    assert_eq!(fixed, EXPLORER_DEBUG.replace(">false<", ">true<"));
     assert!(fixed.contains("\r\n"));
-    assert!(fixed.contains("<!-- set to False only for local debugging -->"));
+    assert!(fixed.contains("<!-- set to false only for local debugging -->"));
 }
 
 #[test]
@@ -99,7 +99,7 @@ fn check_mode_reports_without_modifying() {
 
     let output = repo.run(&["--check", "SystemConfigFiles/Explorer.xml"]);
     assert_eq!(output.status.code(), Some(1));
-    assert!(stdout(&output).contains("must be 'True'"));
+    assert!(stdout(&output).contains("must be 'true'"));
     assert!(!stdout(&output).contains("reverted"));
     assert_eq!(repo.read("SystemConfigFiles/Explorer.xml"), EXPLORER_DEBUG);
 }
@@ -109,12 +109,12 @@ fn files_not_matching_any_rule_are_ignored() {
     let repo = Repo::new();
     let other = repo.write(
         "Config/MapLayerFiles/Rivers.xml",
-        "<adjustSystemTimeAutomatically>False</adjustSystemTimeAutomatically>",
+        "<adjustSystemTimeAutomatically>false</adjustSystemTimeAutomatically>",
     );
 
     let output = repo.run(&["Config/MapLayerFiles/Rivers.xml"]);
     assert_eq!(output.status.code(), Some(0));
-    assert!(fs::read_to_string(other).unwrap().contains(">False<"));
+    assert!(fs::read_to_string(other).unwrap().contains(">false<"));
 }
 
 #[test]
@@ -129,7 +129,7 @@ fn rule_matches_explorer_xml_nested_deeper_in_the_tree() {
     assert_eq!(output.status.code(), Some(1));
     assert!(repo
         .read("Trunk/Config/SystemConfigFiles/Explorer.xml")
-        .contains(">True<"));
+        .contains(">true<"));
 }
 
 #[test]
@@ -198,7 +198,7 @@ fn utf8_bom_is_preserved() {
     assert_eq!(output.status.code(), Some(1));
     let fixed = fs::read(path).unwrap();
     assert!(fixed.starts_with(b"\xef\xbb\xbf"));
-    assert!(String::from_utf8(fixed).unwrap().contains(">True<"));
+    assert!(String::from_utf8(fixed).unwrap().contains(">true<"));
 }
 
 #[test]
@@ -308,5 +308,5 @@ fn shipped_example_is_fixed_by_shipped_example_config() {
     assert_eq!(output.status.code(), Some(1));
     assert!(repo
         .read("SystemConfigFiles/Explorer.xml")
-        .contains("<adjustSystemTimeAutomatically>True</adjustSystemTimeAutomatically>"));
+        .contains("<adjustSystemTimeAutomatically>true</adjustSystemTimeAutomatically>"));
 }

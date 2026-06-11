@@ -8,10 +8,10 @@ Python 3.12.10, in clean temporary environments.*
 The tool works end-to-end, exactly the way a colleague would consume it: all
 three pre-commit hooks were exercised through `pre-commit try-repo` against a
 simulated FEWS configuration repository, and behaved as designed. The code is
-tested (37 automated tests), lint-clean, and documented. **The one blocker
-before anyone else can use it: the repository has no commits yet** — it must
-be pushed to its home, `github.com/HKV-products-services/fews-precommit`
-(already referenced throughout the docs), and tagged `v0.1.0`.
+tested (37 automated tests), lint-clean, and documented. The repository has
+since been published at `github.com/HKV-products-services/fews-precommit`
+and tagged `v0.1.0`; the post-review field-test fixes below ship as
+`v0.1.1`.
 
 ## What was verified
 
@@ -32,6 +32,21 @@ be pushed to its home, `github.com/HKV-products-services/fews-precommit`
 A side finding during verification: `pip install` had left `build/` and
 `*.egg-info/` artifacts in the project root that were not gitignored — fixed
 during this review (`.gitignore` now covers Python artifacts).
+
+**Post-review field test (same day):** the hook was run on a real FEWS
+configuration repository (`FEWS_HHD/BOS`) via `pre-commit run --all-files`.
+Two issues surfaced and were fixed:
+
+1. On machines without Visual Studio Build Tools, pre-commit's
+   `cargo install` fails with "linker `link.exe` not found" because rustup
+   defaults to the MSVC toolchain. Fix on such machines:
+   `rustup default stable-x86_64-pc-windows-gnu` (documented in the README
+   troubleshooting section).
+2. The original plan's example value `True` (capitalized) is wrong for real
+   FEWS configurations: the schemas use `xs:boolean`, which only accepts
+   lowercase `true`/`false`. The built-in default, examples and docs now
+   enforce lowercase. After both fixes, the hook ran green on the real
+   repository and correctly enforces the schema-valid value.
 
 ## Strengths
 
@@ -64,12 +79,10 @@ during this review (`.gitignore` now covers Python artifacts).
 
 ## Weaknesses and limitations
 
-- **Not published yet.** No commits and no tag; the target URL
-  (`github.com/HKV-products-services/fews-precommit`) is referenced in the
-  docs but the repository has not been pushed there. Until then, nobody can
-  use it, and CI has never run on GitHub's own runners (it was replicated
-  locally and the workflow is standard, but that is not the same as a green
-  badge).
+- **CI not yet confirmed green on GitHub's runners.** The repository is
+  published and tagged, but the workflow results on real runners should be
+  checked (everything was replicated locally, which is not the same as a
+  green badge).
 - **First-use build cost.** pre-commit compiles the Rust hook once per
   machine (minutes). Cached afterwards, but the first commit surprises
   people. Pinning `language_version` mitigates the no-toolchain case but was
@@ -104,9 +117,8 @@ and "team-ready".
 
 ### Before sharing with the team
 
-1. Push to `github.com/HKV-products-services/fews-precommit`, tag `v0.1.0`,
-   and confirm CI is green on real runners. (The URL is already filled in
-   throughout README, CHANGELOG, example config and `Cargo.toml`.)
+1. Commit and tag the `v0.1.1` fixes (boolean casing, troubleshooting docs)
+   and confirm CI is green on GitHub's runners.
 2. Drop the real FEWS XSDs (matching the team's FEWS version) into a pilot
    repository's `Schemas/` folder and run `fews-xsd-validate` against the
    actual configuration once, to size up performance and schema coverage.
