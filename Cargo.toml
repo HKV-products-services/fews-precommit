@@ -1,6 +1,6 @@
 [package]
 name = "fews-precommit"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Pre-commit hook that reverts Delft-FEWS XML configuration values to their required defaults"
 license = "MIT"

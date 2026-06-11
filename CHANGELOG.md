@@ -10,6 +10,26 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 Nothing yet.
 
+## [0.1.2] - 2026-06-11
+
+### Added
+
+- `fews-xsd-validate`: relative `xsi:schemaLocation` hints (e.g.
+  `../xsd/rtcDataConfig.xsd`, common in RTC-Tools configs) are now resolved
+  against the XML file's own location, also when written with Windows
+  backslashes. Previously such files could only be validated by copying the
+  schema into the schema directory, and `--allow-remote` appeared to have
+  no effect on them.
+
+### Changed
+
+- `fews-xsd-validate`: validation errors are now printed structured and
+  width-wrapped (file plus error count, then indented element path and
+  reason) instead of one long line per error.
+- `fews-xsd-validate`: the missing-schema message no longer suggests
+  `--allow-remote` when it cannot help (flag already set, or the hint is
+  not an http(s) URL).
+
 ## [0.1.1] - 2026-06-11
 
 ### Changed
@@ -109,6 +129,7 @@ Initial release.
   libxml2 bindings would require a native library on every contributor
   machine). Validation is delegated to the Python sidecar hook instead.
 
-[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/HKV-products-services/fews-precommit/releases/tag/v0.1.0

@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fews-precommit-xsd"
-version = "0.1.1"
+version = "0.1.2"
 description = "XSD validation hook for Delft-FEWS configuration XML"
 requires-python = ">=3.9"
 dependencies = ["xmlschema>=3,<5"]

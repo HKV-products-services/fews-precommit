@@ -70,7 +70,7 @@ via [pyproject.toml](../pyproject.toml)):
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.1
+    rev: v0.1.2
     hooks:
       - id: fews-xsd-validate
         args: [--schema-dir, Schemas]
@@ -87,6 +87,10 @@ within a run.
 
 Behavior:
 
+- Schema resolution order: pinned copy in the schema directory (by file
+  name) → relative hints resolved against the XML file's own location
+  (common in RTC-Tools configs, e.g. `../xsd/rtcDataConfig.xsd`) →
+  http(s) hints downloaded when `--allow-remote` is given.
 - Files that declare no schema are skipped.
 - Files whose schema is not in the schema directory are reported but pass
   by default (`--missing-schema warn`), so teams can adopt validation

@@ -1,7 +1,7 @@
 # Example .pre-commit-config.yaml for a Delft-FEWS configuration repository.
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.1
+    rev: v0.1.2
     hooks:
       - id: fews-xml-defaults
         # Uncomment if you do not have a Rust toolchain installed;

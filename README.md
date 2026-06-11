@@ -32,7 +32,7 @@ installed — no Rust knowledge required. Add this to the
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.1
+    rev: v0.1.2
     hooks:
       - id: fews-xml-defaults
 ```
@@ -156,7 +156,7 @@ pre-commit installs it automatically, just like the Rust hook:
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.1
+    rev: v0.1.2
     hooks:
       - id: fews-xml-defaults
       - id: fews-xsd-validate
@@ -171,11 +171,14 @@ How it works:
 2. On commit, the hook reads each staged XML file's `xsi:schemaLocation`,
    looks up the schema **by file name** in the schema directory (so
    `…/version1.0/explorer.xsd` resolves to `Schemas/explorer.xsd`), and
-   validates. One hook covers every FEWS file type at once.
-3. Files that declare no schema are skipped. Files whose schema is not in
-   the folder are reported but do not fail the hook — tighten with
-   `--missing-schema fail`, or allow on-the-fly download from the
-   schemaLocation URL with `--allow-remote` (requires internet on commit).
+   validates. One hook covers every FEWS file type at once. Relative hints
+   (e.g. `../xsd/rtcDataConfig.xsd`, common in RTC-Tools configs) are
+   resolved against the XML file's own location.
+3. Files that declare no schema are skipped. Files whose schema cannot be
+   found are reported but do not fail the hook — tighten with
+   `--missing-schema fail`, or allow on-the-fly download of http(s)
+   schemaLocation URLs with `--allow-remote` (requires internet on commit;
+   does not help for relative hints, whose schema must exist on disk).
 
 Why a Python sidecar instead of validating in the Rust binary: there is no
 production-ready pure-Rust XSD validator — see
