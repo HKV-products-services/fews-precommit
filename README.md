@@ -1,6 +1,6 @@
 # fews-precommit
 
-> ![WARNING]
+> [!WARNING]
 > This repository was completely created with AI.
 
 A [pre-commit](https://pre-commit.com) hook for Delft-FEWS configuration
