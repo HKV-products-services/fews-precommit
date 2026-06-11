@@ -48,18 +48,27 @@ cargo feature later, off by default.
 are installed, but they aren't on Windows by default, so the hook would work
 for some team members and silently degrade for others.
 
-### 4. Python `xmlschema` package — recommended
+### 4. Python with lxml (libxml2 wheels) — chosen engine
 
-[xmlschema](https://github.com/sissaschool/xmlschema) is a mature, pure-Python
-XSD 1.0/1.1 validator. Two properties make it the right fit:
+[lxml](https://lxml.de) wraps libxml2 — the same mature C validator behind
+`xmllint` — but ships as a prebuilt binary wheel, so `pip install` needs no
+compiler or system library. pre-commit installs Python hook environments
+automatically, which keeps the zero-knowledge install story. Measured on a
+real FEWS configuration (325 files, full schema set): **1.9s for lxml vs
+26.7s for pure-Python xmlschema** — and lxml's errors carry line numbers.
 
-- pre-commit installs Python hook environments (including
-  `additional_dependencies`) automatically — same zero-knowledge install as
-  the Rust hook.
-- It ships an `xmlschema-validate` CLI: positional XML files,
-  `--schema PATH/URL`, `--version 1.0|1.1`, `-L` for schema-location
-  overrides; the exit code is the number of validation errors, which is
-  exactly what pre-commit needs.
+One caveat found in the field: strict libxml2 refuses schemas with sloppy
+internals (a FEWS-shipped `taskProperties.xsd` contains
+`schemaLocation="mcSynchronisation.xsd "` with a trailing space, which
+libxml2 cannot turn into a URI). The tolerant pure-Python
+[xmlschema](https://github.com/sissaschool/xmlschema) package handles those,
+so the hook uses it as an automatic fallback for schemas lxml rejects.
+
+### 5. Java (Xerces) — fast, but wrong distribution model
+
+Xerces validates quickly, but every machine would need a JRE, and pre-commit
+has no first-class Java hook support (only `language: system` or coursier).
+lxml reaches native-C speed without any of that.
 
 ## The implemented setup: the `fews-xsd-validate` hook
 
@@ -70,7 +79,7 @@ via [pyproject.toml](../pyproject.toml)):
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.2
+    rev: v0.1.3
     hooks:
       - id: fews-xsd-validate
         args: [--schema-dir, Schemas]
@@ -110,9 +119,10 @@ Notes:
   `https://fews.wldelft.nl/schemas/version1.0/`), matched to your FEWS
   build — schemas evolve between FEWS releases. Pinned local schemas
   guarantee everyone validates against the same version, offline.
-- XSD validation is slower than the Rust rule checks (seconds rather than
-  milliseconds for large configs), which is why it is a separate, opt-in
-  hook rather than part of `fews-xml-defaults`.
+- XSD validation is slower than the Rust rule checks (a couple of seconds
+  for a full real-world configuration, milliseconds for the typical commit
+  of a few files), which is why it is a separate, opt-in hook rather than
+  part of `fews-xml-defaults`.
 
 ## What the Rust hook already covers
 

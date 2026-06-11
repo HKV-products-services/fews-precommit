@@ -7,10 +7,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fews-precommit-xsd"
-version = "0.1.2"
+version = "0.1.3"
 description = "XSD validation hook for Delft-FEWS configuration XML"
 requires-python = ">=3.9"
-dependencies = ["xmlschema>=3,<5"]
+dependencies = ["lxml>=4.9", "xmlschema>=3,<5"]
 
 [project.urls]
 Repository = "https://github.com/HKV-products-services/fews-precommit"

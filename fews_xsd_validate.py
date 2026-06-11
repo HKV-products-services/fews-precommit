@@ -12,6 +12,12 @@ Each staged file declares its schema in the root element's xsi:schemaLocation
 
 Files that declare no schema are skipped.
 
+Validation runs on lxml (libxml2, the C library behind xmllint), so large
+FEWS schemas compile and validate at native speed. Schemas that strict
+libxml2 rejects (e.g. a schemaLocation with a stray trailing space, which
+occurs in shipped FEWS schemas) are handled by the tolerant pure-Python
+xmlschema engine instead.
+
 Part of fews-precommit; installed by pre-commit as the fews-xsd-validate hook.
 """
 
@@ -20,29 +26,28 @@ from __future__ import annotations
 import argparse
 import sys
 import textwrap
-import xml.etree.ElementTree as ET
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.request import urlopen
 
-import xmlschema
+from lxml import etree
 
+XSI = "http://www.w3.org/2001/XMLSchema-instance"
+MAX_ERRORS_SHOWN = 10
 WRAP = textwrap.TextWrapper(width=88, initial_indent="    ", subsequent_indent="    ")
 
-XSI = "{http://www.w3.org/2001/XMLSchema-instance}"
 
-
-def schema_hint(xml_file: Path) -> str | None:
+def schema_hint(root: etree._Element) -> str | None:
     """Return the schema location declared on the root element, or None.
 
     xsi:schemaLocation holds (namespace, location) pairs; FEWS files declare
     exactly one pair, so the last token is the location.
     """
-    for _event, element in ET.iterparse(xml_file, events=("start",)):
-        location = element.get(XSI + "schemaLocation")
-        if location and location.split():
-            return location.split()[-1]
-        return element.get(XSI + "noNamespaceSchemaLocation")
-    return None
+    location = root.get(f"{{{XSI}}}schemaLocation")
+    if location and location.split():
+        return location.split()[-1]
+    return root.get(f"{{{XSI}}}noNamespaceSchemaLocation")
 
 
 def schema_file_name(hint: str) -> str:
@@ -71,6 +76,62 @@ def resolve_schema(
     return None
 
 
+class SchemaLoadError(Exception):
+    pass
+
+
+def load_schema(source: str):
+    """Compile a schema with lxml; fall back to the tolerant pure-Python
+    xmlschema engine when strict libxml2 rejects the schema itself."""
+    try:
+        if urlparse(source).scheme in ("http", "https"):
+            # Reached only via --allow-remote.
+            with urlopen(source) as response:  # noqa: S310
+                data = response.read()
+            document = etree.parse(BytesIO(data), base_url=source)
+        else:
+            document = etree.parse(source)
+        return etree.XMLSchema(document)
+    except etree.XMLSchemaParseError as lxml_error:
+        try:
+            import xmlschema
+        except ImportError:
+            raise SchemaLoadError(str(lxml_error)) from lxml_error
+        try:
+            return xmlschema.XMLSchema(source)
+        except Exception as fallback_error:
+            raise SchemaLoadError(
+                f"{lxml_error} (pure-Python fallback also failed: {fallback_error})"
+            ) from fallback_error
+    except (etree.LxmlError, OSError) as exc:
+        raise SchemaLoadError(str(exc)) from exc
+
+
+def validation_errors(schema, xml_file: Path, tree) -> list[tuple[str, str]]:
+    """Returns (location, message) pairs; empty when the file is valid."""
+    if isinstance(schema, etree.XMLSchema):
+        if schema.validate(tree):
+            return []
+        return [
+            (f"line {entry.line}", " ".join(entry.message.split()))
+            for entry in schema.error_log
+        ]
+    return [
+        (entry.path or "/", " ".join((entry.reason or str(entry)).split()))
+        for entry in schema.iter_errors(str(xml_file))
+    ]
+
+
+def report_errors(xml_file: Path, found: list[tuple[str, str]]) -> None:
+    count = "1 error" if len(found) == 1 else f"{len(found)} errors"
+    print(f"{xml_file}: {count}")
+    for location, message in found[:MAX_ERRORS_SHOWN]:
+        print(f"  at {location}:")
+        print(WRAP.fill(message))
+    if len(found) > MAX_ERRORS_SHOWN:
+        print(f"  ... and {len(found) - MAX_ERRORS_SHOWN} more")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="fews-xsd-validate",
@@ -87,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
         "--allow-remote",
         action="store_true",
         help="download the XSD from the file's schemaLocation URL when it is "
-        "not in the schema directory (requires internet access on commit)",
+        "not available locally (requires internet access on commit)",
     )
     parser.add_argument(
         "--missing-schema",
@@ -98,17 +159,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    schemas: dict[str, xmlschema.XMLSchemaBase] = {}
+    xml_parser = etree.XMLParser(resolve_entities=False, huge_tree=True)
+    schemas: dict[str, object] = {}
     invalid = 0
     errors = 0
 
     for xml_file in args.files:
         try:
-            hint = schema_hint(xml_file)
-        except (ET.ParseError, OSError) as exc:
+            tree = etree.parse(str(xml_file), xml_parser)
+        except (etree.LxmlError, OSError) as exc:
             print(f"{xml_file}: cannot read: {exc}")
             errors += 1
             continue
+
+        hint = schema_hint(tree.getroot())
         if hint is None:
             continue  # no schema declared, nothing to validate against
 
@@ -131,22 +195,17 @@ def main(argv: list[str] | None = None) -> int:
         try:
             schema = schemas.get(source)
             if schema is None:
-                schema = xmlschema.XMLSchema(source)
+                schema = load_schema(source)
                 schemas[source] = schema
-            file_errors = list(schema.iter_errors(str(xml_file)))
-        except (xmlschema.XMLSchemaException, ET.ParseError, OSError) as exc:
-            print(f"{xml_file}: {exc}")
+        except SchemaLoadError as exc:
+            print(f"{xml_file}: cannot load schema {source}: {exc}")
             errors += 1
             continue
 
-        if file_errors:
+        found = validation_errors(schema, xml_file, tree)
+        if found:
             invalid += 1
-            count = "1 error" if len(file_errors) == 1 else f"{len(file_errors)} errors"
-            print(f"{xml_file}: {count}")
-            for error in file_errors:
-                print(f"  at {error.path or '/'}:")
-                reason = " ".join((error.reason or str(error)).split())
-                print(WRAP.fill(reason))
+            report_errors(xml_file, found)
 
     if errors:
         return 2

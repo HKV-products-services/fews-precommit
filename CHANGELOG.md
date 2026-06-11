@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 Nothing yet.
 
+## [0.1.3] - 2026-06-11
+
+### Changed
+
+- **`fews-xsd-validate` is now 10–20× faster**: validation runs on lxml
+  (libxml2, the C library behind xmllint) instead of the pure-Python
+  xmlschema engine. Measured on a real FEWS configuration (325 files,
+  full schema set): 1.9s instead of 26.7s. Validation errors now include
+  line numbers. Schemas that strict libxml2 rejects — such as shipped FEWS
+  schemas containing a schemaLocation with a stray trailing space
+  (`taskProperties.xsd` → `"mcSynchronisation.xsd "`) — are handled
+  transparently by the tolerant pure-Python engine as a fallback, so no
+  file goes unvalidated. Java/Xerces was considered and rejected: similar
+  speed, but it would require a JRE on every machine and pre-commit has no
+  first-class Java support.
+
 ## [0.1.2] - 2026-06-11
 
 ### Added
@@ -129,7 +145,8 @@ Initial release.
   libxml2 bindings would require a native library on every contributor
   machine). Validation is delegated to the Python sidecar hook instead.
 
-[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/HKV-products-services/fews-precommit/releases/tag/v0.1.0

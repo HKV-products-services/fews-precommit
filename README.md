@@ -32,7 +32,7 @@ installed — no Rust knowledge required. Add this to the
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.2
+    rev: v0.1.3
     hooks:
       - id: fews-xml-defaults
 ```
@@ -149,14 +149,16 @@ endings, BOM and the XML declaration are preserved exactly.
 
 Rule checks catch known mistakes; schema validation catches structural ones
 (misspelled tags, missing mandatory elements, wrong ordering). This
-repository ships a second hook for that, `fews-xsd-validate`, built on the
-Python [xmlschema](https://github.com/sissaschool/xmlschema) package —
-pre-commit installs it automatically, just like the Rust hook:
+repository ships a second hook for that, `fews-xsd-validate`, built on
+[lxml](https://lxml.de)/libxml2 (validates a full real-world FEWS
+configuration in a couple of seconds) with a tolerant pure-Python fallback
+for schemas strict libxml2 rejects — pre-commit installs everything
+automatically, just like the Rust hook:
 
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.2
+    rev: v0.1.3
     hooks:
       - id: fews-xml-defaults
       - id: fews-xsd-validate
