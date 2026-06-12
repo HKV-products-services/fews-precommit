@@ -75,12 +75,22 @@ exists in the binaries but is undocumented and not yet invocable.
   implementation exists — `checkConfiguration` and
   `checkGlobalReferences` are new in the 2026.01 Explorer — but the
   release-notes documentation column says "None" and the invocation is
-  not discoverable from the binaries: the Explorer's command-line
-  vocabulary in build 605120850 is only
-  `requestFocus`/`runIfdTask`/`runIfdTaskAutoSaveToServer`/`runTask`, and
-  probes with `validate`/`checkconfig`/`configcheck` are rejected.
-  **Action: ask Deltares for the syntax**; it can then be added to
-  `fews-config-validate` as the proper level-2 mode in a few lines.
+  **conclusively not reachable** in build 605120850 + patch 605261155.
+  Exhaustively probed: the Explorer's command-line vocabulary
+  (`ExplorerRmi$RmiCommand`) is only
+  `requestFocus`/`runIfdTask`/`runIfdTaskAutoSaveToServer`/`runTask`;
+  the arguments `validate`, `checkconfig`, `configcheck` and
+  `checkConfiguration` (camelCase, in case the keyword was hidden by
+  constant-pool deduplication) are all rejected and the normal SA GUI
+  boots regardless; the property `-DcheckConfiguration=true` is likewise
+  ignored; the user-supplied patch jar (605261155) patches the F12 debug
+  menu but contains no caller of `checkConfiguration` either; `mctools`
+  is unchanged. The `-Wmain.class=` override (the WorkflowTestRun/DCM
+  technique) cannot reach it because the implementation has no `main`
+  method — it sits inside the GUI environment class.
+  **Action: ask Deltares for the activation syntax or the build that
+  ships it**; once known it slots into `fews-config-validate` as the
+  proper level-2 mode in a few lines.
 - **2026.01 launch model changed**: a `patch.jar` is required in the
   region home and the Explorer expects to be started via the new
   launcher. The hook's main classes (DCM, WorkflowTestRun) are unaffected
