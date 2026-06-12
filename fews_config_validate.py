@@ -32,10 +32,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from pathlib import Path
 
 DCM_MAIN = "nl.wldelft.dataconversion.DataConversionModule"
 TEST_RUN_MAIN = "nl.wldelft.fews.system.workflowtestrun.WorkflowTestRun"
+FEWS_NS = "{http://www.wldelft.nl/fews}"
 
 ERROR_LINE = re.compile(r"\b(ERROR|FATAL)\b")
 LOG_TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
@@ -60,6 +63,48 @@ WORKFLOW_ACTIVITY = """\
             <workflowId>{workflow}</workflowId>
         </workflowActivity>
 """
+
+# Generated workflow test run for --test-run-all: executing workflows is the
+# deepest validation Delft-FEWS offers from the command line; it resolves the
+# module configs, time series sets and (time dependent) related locations of
+# every workflow it runs.
+TEST_RUN_XML = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<workflowTestRun xmlns="http://www.wldelft.nl/fews">
+    <general>
+        <description>fews-precommit configuration check</description>
+        <systemTime date="{date}" time="{time}"/>
+    </general>
+    <activities>
+{activities}    </activities>
+</workflowTestRun>
+"""
+
+
+def read_workflow_ids(region_dir: Path) -> list[str] | None:
+    descriptors = region_dir / "Config" / "RegionConfigFiles" / "WorkflowDescriptors.xml"
+    if not descriptors.is_file():
+        return None
+    ids = []
+    for _event, element in ET.iterparse(descriptors):
+        if element.tag == f"{FEWS_NS}workflowDescriptor":
+            workflow_id = element.get("id")
+            if workflow_id:
+                ids.append(workflow_id)
+    return ids
+
+
+def select_workflows(
+    ids: list[str], include: list[str], exclude: list[str]
+) -> list[str]:
+    selected = ids
+    if include:
+        patterns = [re.compile(p) for p in include]
+        selected = [i for i in selected if any(p.search(i) for p in patterns)]
+    if exclude:
+        patterns = [re.compile(p) for p in exclude]
+        selected = [i for i in selected if not any(p.search(i) for p in patterns)]
+    return selected
 
 
 def find_region_dir(region_arg: Path | None) -> Path | None:
@@ -178,13 +223,12 @@ def collect_problems(output: str, log_file: Path) -> list[str]:
         if not ERROR_LINE.search(stripped):
             continue
         entry = [stripped]
-        while (
-            index < len(lines)
-            and not LOG_TIMESTAMP.match(lines[index].strip())
-            and len(entry) < 6
-        ):
-            if lines[index].strip():
-                entry.append(lines[index].strip())
+        while index < len(lines) and len(entry) < 6:
+            continuation = lines[index].strip()
+            if LOG_TIMESTAMP.match(continuation) or continuation.startswith("*"):
+                break
+            if continuation:
+                entry.append(continuation)
             index += 1
         message = " ".join(entry)
         if message not in seen:
@@ -236,6 +280,45 @@ def main(argv: list[str] | None = None) -> int:
         help="run this workflowTestRun XML (e.g. "
         "Config/WorkflowTestRuns/wftr_ImportPvss.xml) instead of only "
         "loading the configuration (repeatable)",
+    )
+    parser.add_argument(
+        "--test-run-all",
+        action="store_true",
+        help="generate and run a workflow test run containing every "
+        "workflow from WorkflowDescriptors.xml - the deepest check "
+        "available, but heavy; scope it with --include/--exclude. "
+        "Intended for CI/nightly runs rather than every push",
+    )
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        metavar="REGEX",
+        help="with --test-run-all: only run workflow ids matching this "
+        "regular expression (repeatable)",
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="REGEX",
+        help="with --test-run-all: skip workflow ids matching this regular "
+        "expression (repeatable)",
+    )
+    parser.add_argument(
+        "--system-time",
+        metavar="YYYY-MM-DDTHH:MM:SS",
+        default=None,
+        help="system time for generated test runs (default: now, UTC)",
+    )
+    parser.add_argument(
+        "--region-copy",
+        action="append",
+        default=[],
+        metavar="DIR",
+        help="copy this directory from the region into the throwaway "
+        "validation region, e.g. --region-copy Modules when workflows run "
+        "module adapters (repeatable)",
     )
     parser.add_argument(
         "--workflow",
@@ -296,9 +379,58 @@ def main(argv: list[str] | None = None) -> int:
             (temp_region / "global.properties").write_text(MINIMAL_GLOBAL_PROPERTIES)
         if (region_dir / "log4j2.xml").is_file():
             shutil.copy(region_dir / "log4j2.xml", temp_region / "log4j2.xml")
+        for name in args.region_copy:
+            source = region_dir / name
+            if not source.is_dir():
+                print(f"fews-config-validate: --region-copy {name}: not found")
+                return 2
+            shutil.copytree(source, temp_region / name)
 
         runs: list[tuple[str, list[str]]] = []
-        if args.test_run:
+        if args.test_run_all:
+            ids = read_workflow_ids(region_dir)
+            if ids is None:
+                print(
+                    "fews-config-validate: "
+                    "Config/RegionConfigFiles/WorkflowDescriptors.xml not found"
+                )
+                return 2
+            selected = select_workflows(ids, args.include, args.exclude)
+            if not selected:
+                print(
+                    "fews-config-validate: no workflows left after "
+                    "--include/--exclude filtering"
+                )
+                return 2
+            moment = (
+                datetime.fromisoformat(args.system_time)
+                if args.system_time
+                else datetime.now(timezone.utc)
+            )
+            activities = "".join(
+                WORKFLOW_ACTIVITY.format(workflow=w) for w in selected
+            )
+            generated = temp_region / "WorkflowTestRuns" / "all-workflows.xml"
+            generated.parent.mkdir(exist_ok=True)
+            generated.write_text(
+                TEST_RUN_XML.format(
+                    date=moment.strftime("%Y-%m-%d"),
+                    time=moment.strftime("%H:%M:%S"),
+                    activities=activities,
+                )
+            )
+            command = build_command(
+                fews_exe,
+                patch_jar,
+                temp_region,
+                args.max_memory,
+                TEST_RUN_MAIN,
+                [f"-Warg.1={temp_region}", f"-Warg.2={generated}"],
+            )
+            runs.append(
+                (f"test run of {len(selected)} workflow(s)", command)
+            )
+        elif args.test_run:
             for value in args.test_run:
                 test_run = resolve_test_run(value, region_dir, temp_region)
                 if test_run is None:

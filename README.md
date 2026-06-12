@@ -229,13 +229,51 @@ Details:
           args: [--test-run, Config/WorkflowTestRuns/wftr_ImportPvss.xml]
   ```
 
+- `--test-run-all` generates and runs a workflow test run containing
+  **every workflow** from `WorkflowDescriptors.xml` — the deepest check
+  available from the command line, resolving the module configs, time
+  series sets and (time-dependent) related locations of everything it
+  runs. It is heavy and workflows needing external systems will fail, so
+  scope it (`--include`/`--exclude` regexes on workflow id) and run it in
+  CI or nightly rather than on every push:
+
+  ```sh
+  fews-config-validate --test-run-all --exclude '^wf_Export' --include '^wf_Import'
+  ```
+
 - `--workflow <Id>` (repeatable) additionally runs workflows in
   configuration-load mode, which makes Delft-FEWS load and validate the
   module configs they reference.
 - `--global-properties <file>` supplies your own properties file when the
   configuration relies on `$PROPERTY$` expansion (default is a minimal
-  built-in one).
+  built-in one). Workflows that read site properties (connection strings,
+  passwords) fail without it.
+- `--region-copy <dir>` (repeatable) copies extra region folders (e.g.
+  `Modules`) into the throwaway region when workflows run module adapters.
+- `--system-time <YYYY-MM-DDTHH:MM:SS>` pins the system time of generated
+  test runs (default: now, UTC).
 - `--max-memory <MB>` sets the Java heap (default 1024).
+
+### How this maps to the three FEWS validation levels
+
+1. **Errors in the log panel at startup** — covered by the default
+   configuration-load mode.
+2. **Extra errors when opening the Workflow Navigator (F12 > K)** — the
+   navigator is GUI-only; Delft-FEWS 2025.02 has no command-line
+   equivalent (also not in `mctools`). A dedicated `configchecktool` would
+   be a feature request to Deltares. `--test-run-all` covers the same
+   ground from the other side: what the navigator resolves statically, a
+   test run of every workflow resolves by execution.
+   *Note:* the 2026.01 release notes announce FEWS-34372 "Command line
+   configuration checking" (new `checkConfiguration`/`checkGlobalReferences`
+   code exists in the Explorer), but in build 605120850 it is undocumented
+   and the invocation is not discoverable — ask Deltares for the syntax;
+   it can then slot straight into this hook. The hook itself already runs
+   fine on 2026.01 binaries: pass the matching patch jar explicitly
+   (`--patch-jar <fews-stable-202601-...-patch.jar>`) when your region's
+   own patch.jar belongs to an older FEWS version.
+3. **A workflow runs successfully** — covered by `--test-run` (your own
+   `workflowTestRun` files) or `--test-run-all`.
 
 Example failure output, caught on a real configuration:
 

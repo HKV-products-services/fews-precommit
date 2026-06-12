@@ -8,7 +8,28 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `fews-config-validate --test-run-all`: generates and runs a workflow
+  test run containing every workflow from `WorkflowDescriptors.xml`,
+  scopeable with `--include`/`--exclude` regexes — the deepest
+  command-line check available, resolving module configs, time series
+  sets and (time-dependent) related locations by executing the workflows.
+  Found a real nested-LocationSet error on first use against a production
+  configuration. Supporting options: `--system-time` (pins the test run
+  system time) and `--region-copy` (copies e.g. `Modules` into the
+  throwaway region for workflows that run adapters).
+- README: mapping of the hook modes to the three FEWS validation levels
+  (startup log, Workflow Navigator, workflow run). The Workflow Navigator
+  (F12 > K) is GUI-only in Delft-FEWS 2025.02 — there is no command-line
+  equivalent and `mctools` has no config check tool; a dedicated
+  `configchecktool` would be a feature request to Deltares.
+
+### Fixed
+
+- `fews-config-validate`: multi-line log capture no longer glues log
+  banners (`*** WorkflowTestRun Start ***`) onto error messages, which
+  also broke deduplication.
 
 ## [0.1.4] - 2026-06-12
 
