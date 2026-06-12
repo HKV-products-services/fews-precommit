@@ -79,7 +79,7 @@ via [pyproject.toml](../pyproject.toml)):
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.3
+    rev: v0.1.4
     hooks:
       - id: fews-xsd-validate
         args: [--schema-dir, Schemas]

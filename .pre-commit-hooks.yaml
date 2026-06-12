@@ -40,3 +40,21 @@
   entry: fews-xsd-validate
   language: python
   types: [xml]
+
+- id: fews-config-validate
+  name: Delft-FEWS configuration validation (runs Delft-FEWS)
+  description: >-
+    Lets Delft-FEWS itself load the configuration (via its Data Conversion
+    module) and fails on every ERROR/FATAL it logs - catches broken
+    references between files that XSD validation cannot see. With
+    "args: [--test-run, <workflowTestRun.xml>]" it runs a Delft-FEWS
+    workflow test run instead. Needs the machine-specific path to
+    Delft-FEWSc.exe via the FEWS_EXE environment variable or
+    "args: [--fews-exe, <path>]". Takes ~30s, so it runs on pre-push and
+    on demand (pre-commit run fews-config-validate --hook-stage manual)
+    rather than on every commit.
+  entry: fews-config-validate
+  language: python
+  types: [xml]
+  pass_filenames: false
+  stages: [pre-push, manual]

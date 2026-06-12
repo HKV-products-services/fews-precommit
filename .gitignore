@@ -4,5 +4,6 @@
 # Python packaging artifacts
 /build
 /dist
+/resources
 *.egg-info/
 __pycache__/

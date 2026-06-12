@@ -1,13 +1,14 @@
-# Packaging for the Python-based fews-xsd-validate hook. The Rust hooks in
-# this repository are built from Cargo.toml; pre-commit picks the right
-# toolchain per hook based on its `language` in .pre-commit-hooks.yaml.
+# Packaging for the Python-based hooks (fews-xsd-validate and
+# fews-config-validate). The Rust hooks in this repository are built from
+# Cargo.toml; pre-commit picks the right toolchain per hook based on its
+# `language` in .pre-commit-hooks.yaml.
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "fews-precommit-xsd"
-version = "0.1.3"
+version = "0.1.4"
 description = "XSD validation hook for Delft-FEWS configuration XML"
 requires-python = ">=3.9"
 dependencies = ["lxml>=4.9", "xmlschema>=3,<5"]
@@ -17,6 +18,7 @@ Repository = "https://github.com/HKV-products-services/fews-precommit"
 
 [project.scripts]
 fews-xsd-validate = "fews_xsd_validate:main"
+fews-config-validate = "fews_config_validate:main"
 
 [tool.setuptools]
-py-modules = ["fews_xsd_validate"]
+py-modules = ["fews_xsd_validate", "fews_config_validate"]

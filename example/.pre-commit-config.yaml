@@ -1,7 +1,7 @@
 # Example .pre-commit-config.yaml for a Delft-FEWS configuration repository.
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.3
+    rev: v0.1.4
     hooks:
       - id: fews-xml-defaults
         # Uncomment if you do not have a Rust toolchain installed;
@@ -18,3 +18,12 @@ repos:
         args: [--schema-dir, Schemas]
         # Stricter: fail when a declared schema is missing locally
         # args: [--schema-dir, Schemas, --missing-schema, fail]
+
+      # Let Delft-FEWS itself load and validate the whole configuration
+      # (catches broken references between files). Runs on pre-push and on
+      # demand because it takes ~30s. Each developer sets FEWS_EXE to their
+      # local Delft-FEWSc.exe, e.g.
+      #   FEWS_EXE=C:\Data\FEWS\202502\windows\Delft-FEWSc.exe
+      - id: fews-config-validate
+        # Deeper: run a workflow test run against the configuration:
+        # args: [--test-run, Config/WorkflowTestRuns/wftr_ImportPvss.xml]

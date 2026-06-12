@@ -32,7 +32,7 @@ installed — no Rust knowledge required. Add this to the
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.3
+    rev: v0.1.4
     hooks:
       - id: fews-xml-defaults
 ```
@@ -158,7 +158,7 @@ automatically, just like the Rust hook:
 ```yaml
 repos:
   - repo: https://github.com/HKV-products-services/fews-precommit
-    rev: v0.1.3
+    rev: v0.1.4
     hooks:
       - id: fews-xml-defaults
       - id: fews-xsd-validate
@@ -186,6 +186,65 @@ Why a Python sidecar instead of validating in the Rust binary: there is no
 production-ready pure-Rust XSD validator — see
 [docs/xsd-validation.md](docs/xsd-validation.md) for the exploration and
 trade-offs.
+
+## Letting Delft-FEWS itself validate the configuration
+
+XSD validation checks each file in isolation; only Delft-FEWS knows whether
+the files fit together (location ids referenced by filters, grids,
+descriptors, …). The `fews-config-validate` hook runs your locally
+installed Delft-FEWS — via its Data Conversion module — against the
+repository's configuration in a throwaway region, and fails on every
+`ERROR`/`FATAL` line Delft-FEWS logs (Delft-FEWS itself exits 0 even for a
+broken configuration, so the log is what counts):
+
+```yaml
+      - id: fews-config-validate
+        # The Delft-FEWS binaries are machine-specific, so each developer
+        # sets the FEWS_EXE environment variable (recommended), e.g.
+        #   FEWS_EXE=C:\Data\FEWS\202502\windows\Delft-FEWSc.exe
+        # Alternatively pin a path shared by the whole team:
+        # args: [--fews-exe, 'C:\Data\FEWS\202502\windows\Delft-FEWSc.exe']
+```
+
+Details:
+
+- Requires a local Delft-FEWS installation whose version matches the
+  configuration. The region directory (the folder containing `Config`,
+  e.g. `FEWS/`) is auto-detected, as is a `*patch*.jar` in that folder;
+  override with `--region-dir` and `--patch-jar`.
+- A run takes roughly half a minute, so the hook is wired to the
+  **pre-push** stage and manual runs instead of every commit: enable with
+  `pre-commit install --hook-type pre-push`, or run on demand with
+  `pre-commit run fews-config-validate --hook-stage manual`.
+- `--test-run <file>` (repeatable) runs a Delft-FEWS **workflow test run**
+  instead: a `workflowTestRun` XML (typically in
+  `Config/WorkflowTestRuns/`) that executes workflows against the candidate
+  configuration — the deepest check available, validating everything those
+  workflows touch. See the
+  [Deltares wiki](https://publicwiki.deltares.nl/display/FEWSDOC/How+to+configure+a+workflow+test+run.++Running+workflows+from+the+command-line)
+  for the file format:
+
+  ```yaml
+        - id: fews-config-validate
+          args: [--test-run, Config/WorkflowTestRuns/wftr_ImportPvss.xml]
+  ```
+
+- `--workflow <Id>` (repeatable) additionally runs workflows in
+  configuration-load mode, which makes Delft-FEWS load and validate the
+  module configs they reference.
+- `--global-properties <file>` supplies your own properties file when the
+  configuration relies on `$PROPERTY$` expansion (default is a minimal
+  built-in one).
+- `--max-memory <MB>` sets the Java heap (default 1024).
+
+Example failure output, caught on a real configuration:
+
+```text
+Delft-FEWS reported 6 configuration error(s):
+  ... ERROR - main.LocationUtils.parseLocationFile - Config.Error: Xml file RegionConfigFiles/Locations.xml is not valid
+  ... ERROR - main.TimeSeriesFilter.createFromCastor - Config.Error: Location with id DelfluentHoutrust does not exist
+  ... ERROR - main.Grids.initGridGeometries - Config.Error: grid/location id HHD-HARMONIE unknown
+```
 
 ## Running it by hand
 

@@ -10,6 +10,28 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 Nothing yet.
 
+## [0.1.4] - 2026-06-12
+
+### Added
+
+- **`fews-config-validate` hook**: lets Delft-FEWS itself load the
+  configuration and fails on every `ERROR`/`FATAL` it logs — catching
+  semantic errors XSD validation cannot see (broken references between
+  files, unknown location/grid ids, …). It builds a throwaway region whose
+  `Config` links to the repository's configuration and runs the Delft-FEWS
+  Data Conversion module through the user's `Delft-FEWSc.exe`; the
+  executable path is machine-specific and user-defined via the `FEWS_EXE`
+  environment variable or `--fews-exe`. With `--test-run
+  <workflowTestRun.xml>` it runs a Delft-FEWS *workflow test run* instead
+  (main class `nl.wldelft.fews.system.workflowtestrun.WorkflowTestRun`),
+  executing workflows against the candidate configuration. The region
+  folder and `*patch*.jar` are auto-detected; `--workflow`,
+  `--global-properties` and `--max-memory` (default 1024 MB) tune the run.
+  Wired to the pre-push and manual stages (~30s per run). Note: the Data
+  Conversion module exits 0 even for a broken configuration, so the hook
+  parses the run log instead of trusting the exit code; multi-line log
+  entries are captured in full.
+
 ## [0.1.3] - 2026-06-11
 
 ### Changed
@@ -145,7 +167,8 @@ Initial release.
   libxml2 bindings would require a native library on every contributor
   machine). Validation is delegated to the Python sidecar hook instead.
 
-[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/HKV-products-services/fews-precommit/compare/v0.1.0...v0.1.1
